@@ -1,14 +1,27 @@
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 from app.config import settings
-from app.database import check_database_connection
+from app.database import check_database_connection, database
+
+
+BASE_DIR = Path(__file__).resolve().parent
+
+templates = Jinja2Templates(
+    directory=str(BASE_DIR / "templates")
+)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     check_database_connection()
+    print("Connected to MongoDB.")
     yield
 
 
@@ -18,23 +31,114 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.mount(
+    "/static",
+    StaticFiles(directory=str(BASE_DIR / "static")),
+    name="static",
+)
 
-@app.get("/")
-def home():
-    return {
-        "application": settings.app_name,
-        "message": "Campus Events Manager API is running",
-    }
+
+@app.get("/", response_class=HTMLResponse)
+def dashboard(request: Request):
+    now = datetime.now(timezone.utc)
+
+    total_users = database.users.count_documents({})
+    total_events = database.events.count_documents({})
+    upcoming_events_count = database.events.count_documents(
+        {"startDate": {"$gt": now}}
+    )
+    past_events_count = database.events.count_documents(
+        {"startDate": {"$lt": now}}
+    )
+
+    upcoming_events = list(
+        database.events.find(
+            {"startDate": {"$gt": now}},
+            {
+                "title": 1,
+                "category": 1,
+                "startDate": 1,
+                "capacity": 1,
+                "location": 1,
+                "registrations": 1,
+            },
+        )
+        .sort("startDate", 1)
+        .limit(5)
+    )
+
+    for event in upcoming_events:
+        event["registrationCount"] = len(
+            event.get("registrations", [])
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="dashboard.html",
+        context={
+            "page_title": "Dashboard",
+            "active_page": "dashboard",
+            "total_users": total_users,
+            "total_events": total_events,
+            "upcoming_events_count": upcoming_events_count,
+            "past_events_count": past_events_count,
+            "upcoming_events": upcoming_events,
+        },
+    )
+
+
+@app.get("/events", response_class=HTMLResponse)
+def events_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="placeholder.html",
+        context={
+            "page_title": "Events",
+            "active_page": "events",
+            "heading": "Events",
+            "message": "Event management will be added in Phase 4.",
+        },
+    )
+
+
+@app.get("/users", response_class=HTMLResponse)
+def users_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="placeholder.html",
+        context={
+            "page_title": "Users",
+            "active_page": "users",
+            "heading": "Users",
+            "message": "User management will be added in a later phase.",
+        },
+    )
+
+
+@app.get("/analytics", response_class=HTMLResponse)
+def analytics_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="placeholder.html",
+        context={
+            "page_title": "Analytics",
+            "active_page": "analytics",
+            "heading": "Analytics",
+            "message": "MongoDB analytics will be added in a later phase.",
+        },
+    )
 
 
 @app.get("/health")
 def health_check():
     try:
         check_database_connection()
+
         return {
             "status": "healthy",
             "database": "connected",
         }
+
     except Exception as exc:
         raise HTTPException(
             status_code=503,
