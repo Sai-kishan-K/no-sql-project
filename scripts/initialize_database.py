@@ -218,7 +218,7 @@ def initialize_database() -> None:
     create_indexes()
 
     print(f"Database '{settings.mongodb_database}' initialized successfully.")
-
+#asdasd
 
 if __name__ == "__main__":
     initialize_database()
