@@ -6,6 +6,7 @@ from app.config import settings
 client: MongoClient = MongoClient(
     settings.mongodb_uri,
     serverSelectionTimeoutMS=5000,
+    tz_aware = True,
 )
 
 database: Database = client[settings.mongodb_database]

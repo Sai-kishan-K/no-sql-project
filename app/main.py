@@ -10,6 +10,8 @@ from fastapi.templating import Jinja2Templates
 from app.config import settings
 from app.database import check_database_connection, database
 
+from app.routes.events import router as events_router
+
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -37,6 +39,7 @@ app.mount(
     name="static",
 )
 
+app.include_router(events_router)
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request):
@@ -87,18 +90,6 @@ def dashboard(request: Request):
     )
 
 
-@app.get("/events", response_class=HTMLResponse)
-def events_page(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="placeholder.html",
-        context={
-            "page_title": "Events",
-            "active_page": "events",
-            "heading": "Events",
-            "message": "Event management will be added in Phase 4.",
-        },
-    )
 
 
 @app.get("/users", response_class=HTMLResponse)
