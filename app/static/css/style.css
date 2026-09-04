@@ -49,3 +49,24 @@ footer {
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
 }
+
+.detail-box {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+}
+
+.detail-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #6c757d;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}

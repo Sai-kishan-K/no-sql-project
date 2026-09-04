@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <div class="d-flex gap-2 mb-2">
+            <span class="badge text-bg-primary">
+                {{ event.category }}
+            </span>
+
+            {% if event.isPast %}
+            <span class="badge text-bg-secondary">
+                Past event
+            </span>
+            {% elif event.isFull %}
+            <span class="badge text-bg-danger">
+                Full
+            </span>
+            {% else %}
+            <span class="badge text-bg-success">
+                Registration open
+            </span>
+            {% endif %}
+        </div>
+
+        <h1 class="h2 mb-1">{{ event.title }}</h1>
+
+        <p class="text-muted mb-0">
+            {{ event.description }}
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a
+            href="/events/{{ event._id }}/edit"
+            class="btn btn-outline-primary"
+        >
+            Edit event
+        </a>
+
+        <a href="/events" class="btn btn-outline-secondary">
+            Back
+        </a>
+    </div>
+</div>
+
+{% if message %}
+<div
+    class="alert
+    {% if message_type == 'danger' %}
+        alert-danger
+    {% else %}
+        alert-success
+    {% endif %}
+    alert-dismissible fade show"
+    role="alert"
+>
+    {{ message }}
+
+    <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="alert"
+        aria-label="Close"
+    ></button>
+</div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h2 class="h5 mb-0">Event information</h2>
+            </div>
+
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Start</dt>
+                    <dd class="col-sm-8">
+                        {{ event.startDate.strftime(
+                            "%d %B %Y at %H:%M"
+                        ) }}
+                    </dd>
+
+                    <dt class="col-sm-4">End</dt>
+                    <dd class="col-sm-8">
+                        {{ event.endDate.strftime(
+                            "%d %B %Y at %H:%M"
+                        ) }}
+                    </dd>
+
+                    <dt class="col-sm-4">Building</dt>
+                    <dd class="col-sm-8">
+                        {{ event.location.building }}
+                    </dd>
+
+                    <dt class="col-sm-4">Room</dt>
+                    <dd class="col-sm-8">
+                        {{ event.location.room }}
+                    </dd>
+
+                    <dt class="col-sm-4">Address</dt>
+                    <dd class="col-sm-8">
+                        {{ event.location.address }}
+                    </dd>
+
+                    <dt class="col-sm-4">Tags</dt>
+                    <dd class="col-sm-8">
+                        {% for tag in event.tags %}
+                        <span
+                            class="badge rounded-pill
+                                   text-bg-light border"
+                        >
+                            {{ tag }}
+                        </span>
+                        {% endfor %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h2 class="h5 mb-0">Organizer</h2>
+            </div>
+
+            <div class="card-body">
+                {% if event.organizer %}
+                <p class="fw-semibold mb-1">
+                    {{ event.organizer.firstName }}
+                    {{ event.organizer.lastName }}
+                </p>
+
+                <p class="text-muted mb-1">
+                    {{ event.organizer.email }}
+                </p>
+
+                <p class="mb-0">
+                    {{ event.organizer.department }}
+                </p>
+                {% else %}
+                <p class="text-muted mb-0">
+                    Organizer information unavailable.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h2 class="h5 mb-0">Registration summary</h2>
+            </div>
+
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <p class="h3 mb-0">
+                            {{ event.registrationCount }}
+                        </p>
+                        <small class="text-muted">
+                            Registered
+                        </small>
+                    </div>
+
+                    <div class="col-4">
+                        <p class="h3 mb-0">
+                            {{ event.capacity }}
+                        </p>
+                        <small class="text-muted">
+                            Capacity
+                        </small>
+                    </div>
+
+                    <div class="col-4">
+                        <p class="h3 mb-0">
+                            {{ event.remainingPlaces }}
+                        </p>
+                        <small class="text-muted">
+                            Available
+                        </small>
+                    </div>
+                </div>
+
+                <hr>
+
+                {% if not event.isFull and available_users %}
+                <form
+                    method="post"
+                    action="/events/{{ event._id }}/registrations"
+                >
+                    <label for="user_id" class="form-label">
+                        Register a user
+                    </label>
+
+                    <select
+                        id="user_id"
+                        name="user_id"
+                        class="form-select mb-3"
+                        required
+                    >
+                        <option value="">Select a user</option>
+
+                        {% for user in available_users %}
+                        <option value="{{ user._id }}">
+                            {{ user.firstName }}
+                            {{ user.lastName }}
+                            — {{ user.department }}
+                        </option>
+                        {% endfor %}
+                    </select>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary w-100"
+                    >
+                        Register user
+                    </button>
+                </form>
+
+                {% elif event.isFull %}
+                <div class="alert alert-warning mb-0">
+                    This event has reached its capacity.
+                </div>
+
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    Every user is already registered.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div
+                class="card-header bg-white d-flex
+                       justify-content-between align-items-center"
+            >
+                <h2 class="h5 mb-0">Registered participants</h2>
+
+                <span class="badge text-bg-primary">
+                    {{ registrations|length }}
+                </span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Participant</th>
+                            <th>Department</th>
+                            <th>Registered</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for registration in registrations %}
+                        <tr>
+                            <td>
+                                {% if registration.user %}
+                                <div class="fw-semibold">
+                                    {{ registration.user.firstName }}
+                                    {{ registration.user.lastName }}
+                                </div>
+
+                                <small class="text-muted">
+                                    {{ registration.user.email }}
+                                </small>
+                                {% else %}
+                                <span class="text-danger">
+                                    User unavailable
+                                </span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if registration.user %}
+                                    {{ registration.user.department }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {{ registration.registeredAt.strftime(
+                                    "%d %b %Y"
+                                ) }}
+                            </td>
+
+                            <td>
+                                <span class="badge text-bg-success">
+                                    {{ registration.status }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <form
+                                    method="post"
+                                    action="/events/{{ event._id }}/registrations/{{ registration.userId }}/delete"
+                                    onsubmit="return confirm(
+                                        'Cancel this registration?'
+                                    );"
+                                >
+                                    <button
+                                        type="submit"
+                                        class="btn btn-sm btn-outline-danger"
+                                    >
+                                        Cancel
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+
+                        {% else %}
+                        <tr>
+                            <td
+                                colspan="5"
+                                class="text-center text-muted py-4"
+                            >
+                                No users are registered for this event.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
