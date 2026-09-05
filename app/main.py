@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 from app.config import settings
 from app.database import check_database_connection, database
 
+from app.routes.analytics import router as analytics_router
 from app.routes.events import router as events_router
 from app.routes.users import router as users_router
 
@@ -42,6 +43,7 @@ app.mount(
 
 app.include_router(events_router)
 app.include_router(users_router)
+app.include_router(analytics_router)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -91,20 +93,6 @@ def dashboard(request: Request):
             "upcoming_events": upcoming_events,
         },
     )
-@app.get("/analytics", response_class=HTMLResponse)
-def analytics_page(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="placeholder.html",
-        context={
-            "page_title": "Analytics",
-            "active_page": "analytics",
-            "heading": "Analytics",
-            "message": "MongoDB analytics will be added in a later phase.",
-        },
-    )
-
-
 @app.get("/health")
 def health_check():
     try:

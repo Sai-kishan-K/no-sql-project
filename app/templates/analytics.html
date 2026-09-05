@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="h2 mb-1">Analytics</h1>
+
+    <p class="text-muted mb-0">
+        Campus event insights calculated using MongoDB
+        aggregation pipelines.
+    </p>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card dashboard-card h-100">
+            <div class="card-body">
+                <p class="card-label">
+                    Categories analysed
+                </p>
+
+                <p class="card-value">
+                    {{ category_results|length }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card dashboard-card h-100">
+            <div class="card-body">
+                <p class="card-label">
+                    Users without registrations
+                </p>
+
+                <p class="card-value">
+                    {{ users_without_events|length }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card dashboard-card h-100">
+            <div class="card-body">
+                <p class="card-label">
+                    Average occupancy
+                </p>
+
+                <p class="card-value">
+                    {{ "%.2f"|format(average_occupancy) }}%
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h2 class="h5 mb-1">
+            A. Registrations by category
+        </h2>
+
+        <small class="text-muted">
+            Categories ordered by confirmed registrations.
+        </small>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Category</th>
+                    <th>Number of events</th>
+                    <th>Confirmed registrations</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for result in category_results %}
+                <tr>
+                    <td class="fw-semibold">
+                        {{ result.category }}
+                    </td>
+                    <td>{{ result.eventCount }}</td>
+                    <td>
+                        {{ result.confirmedRegistrations }}
+                    </td>
+                </tr>
+
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-center py-4">
+                        No category data available.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h2 class="h5 mb-1">
+            B. Top five most popular events
+        </h2>
+
+        <small class="text-muted">
+            Ranked by confirmed registrations.
+        </small>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Rank</th>
+                    <th>Event</th>
+                    <th>Category</th>
+                    <th>Capacity</th>
+                    <th>Confirmed</th>
+                    <th>Occupancy</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for event in popular_events %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+
+                    <td>
+                        <a href="/events/{{ event._id }}">
+                            {{ event.title }}
+                        </a>
+                    </td>
+
+                    <td>{{ event.category }}</td>
+                    <td>{{ event.capacity }}</td>
+
+                    <td>
+                        {{ event.confirmedRegistrations }}
+                    </td>
+
+                    <td>
+                        {{ "%.2f"|format(
+                            event.occupancyPercentage
+                        ) }}%
+                    </td>
+                </tr>
+
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-4">
+                        No event data available.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h2 class="h5 mb-1">
+            C. Users with no registration
+        </h2>
+
+        <small class="text-muted">
+            Found using $lookup followed by $match.
+        </small>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for user in users_without_events %}
+                <tr>
+                    <td>
+                        <a href="/users/{{ user._id }}">
+                            {{ user.firstName }}
+                            {{ user.lastName }}
+                        </a>
+                    </td>
+
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.department }}</td>
+                    <td>{{ user.role|title }}</td>
+                </tr>
+
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center py-4">
+                        Every user has at least one registration.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h2 class="h5 mb-1">
+            D. Events above average occupancy
+        </h2>
+
+        <small class="text-muted">
+            Overall average:
+            {{ "%.2f"|format(average_occupancy) }}%
+        </small>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Event</th>
+                    <th>Category</th>
+                    <th>Capacity</th>
+                    <th>Confirmed</th>
+                    <th>Occupancy</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for event in above_average_events %}
+                <tr>
+                    <td>
+                        <a href="/events/{{ event._id }}">
+                            {{ event.title }}
+                        </a>
+                    </td>
+
+                    <td>{{ event.category }}</td>
+                    <td>{{ event.capacity }}</td>
+
+                    <td>
+                        {{ event.confirmedRegistrations }}
+                    </td>
+
+                    <td class="fw-semibold">
+                        {{ "%.2f"|format(
+                            event.occupancyPercentage
+                        ) }}%
+                    </td>
+                </tr>
+
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center py-4">
+                        No events are above average.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h2 class="h5 mb-1">
+            E. Most-used tags
+        </h2>
+
+        <small class="text-muted">
+            Tags ordered from most frequent to least frequent.
+        </small>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Rank</th>
+                    <th>Tag</th>
+                    <th>Number of events</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for result in tag_results %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+
+                    <td>
+                        <span
+                            class="badge rounded-pill
+                                   text-bg-primary"
+                        >
+                            {{ result.tag }}
+                        </span>
+                    </td>
+
+                    <td>{{ result.eventCount }}</td>
+                </tr>
+
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-center py-4">
+                        No tags available.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white">
+        <h2 class="h5 mb-1">
+            F. Events by month
+        </h2>
+
+        <small class="text-muted">
+            Monthly event and registration totals.
+        </small>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Month</th>
+                    <th>Number of events</th>
+                    <th>Total registrations</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for result in monthly_results %}
+                <tr>
+                    <td class="fw-semibold">
+                        {{ result.month }}
+                    </td>
+
+                    <td>{{ result.eventCount }}</td>
+
+                    <td>
+                        {{ result.registrationCount }}
+                    </td>
+                </tr>
+
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-center py-4">
+                        No monthly data available.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
