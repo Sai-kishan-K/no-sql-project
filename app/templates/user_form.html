@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="h2 mb-1">{{ form_heading }}</h1>
+
+    <p class="text-muted">
+        Complete all required user information.
+    </p>
+</div>
+
+{% if errors %}
+<div class="alert alert-danger">
+    <p class="fw-semibold mb-2">
+        Please correct the following:
+    </p>
+
+    <ul class="mb-0">
+        {% for error in errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="card shadow-sm">
+    <div class="card-body p-4">
+        <form method="post" action="{{ form_action }}">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label
+                        for="first_name"
+                        class="form-label"
+                    >
+                        First name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="first_name"
+                        name="first_name"
+                        class="form-control"
+                        value="{{ user.firstName }}"
+                        required
+                    >
+                </div>
+
+                <div class="col-md-6">
+                    <label
+                        for="last_name"
+                        class="form-label"
+                    >
+                        Last name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="last_name"
+                        name="last_name"
+                        class="form-control"
+                        value="{{ user.lastName }}"
+                        required
+                    >
+                </div>
+
+                <div class="col-md-6">
+                    <label for="email" class="form-label">
+                        Email
+                    </label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        class="form-control"
+                        value="{{ user.email }}"
+                        required
+                    >
+                </div>
+
+                <div class="col-md-6">
+                    <label
+                        for="department"
+                        class="form-label"
+                    >
+                        Department
+                    </label>
+
+                    <input
+                        type="text"
+                        id="department"
+                        name="department"
+                        class="form-control"
+                        value="{{ user.department }}"
+                        required
+                    >
+                </div>
+
+                <div class="col-md-4">
+                    <label for="role" class="form-label">
+                        Role
+                    </label>
+
+                    <select
+                        id="role"
+                        name="role"
+                        class="form-select"
+                        required
+                    >
+                        <option value="">Select a role</option>
+
+                        {% for role in roles %}
+                        <option
+                            value="{{ role }}"
+                            {% if user.role == role %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ role|title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-8">
+                    <label
+                        for="interests"
+                        class="form-label"
+                    >
+                        Interests
+                    </label>
+
+                    <input
+                        type="text"
+                        id="interests"
+                        name="interests"
+                        class="form-control"
+                        value="{{ user.interestsText }}"
+                        placeholder="MongoDB, Python, Analytics"
+                        required
+                    >
+
+                    <div class="form-text">
+                        Separate interests with commas.
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    {{ submit_label }}
+                </button>
+
+                <a href="/users" class="btn btn-outline-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

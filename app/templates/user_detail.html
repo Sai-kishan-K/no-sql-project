@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h2 mb-1">
+            {{ user.firstName }} {{ user.lastName }}
+        </h1>
+
+        <p class="text-muted mb-0">{{ user.email }}</p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a
+            href="/users/{{ user._id }}/edit"
+            class="btn btn-outline-primary"
+        >
+            Edit user
+        </a>
+
+        <a href="/users" class="btn btn-outline-secondary">
+            Back
+        </a>
+    </div>
+</div>
+
+{% if message %}
+<div
+    class="alert
+    {% if message_type == 'danger' %}
+        alert-danger
+    {% else %}
+        alert-success
+    {% endif %}
+    alert-dismissible fade show"
+>
+    {{ message }}
+
+    <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="alert"
+    ></button>
+</div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h2 class="h5 mb-0">User information</h2>
+            </div>
+
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Full name</dt>
+                    <dd class="col-sm-8">
+                        {{ user.firstName }}
+                        {{ user.lastName }}
+                    </dd>
+
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">
+                        {{ user.email }}
+                    </dd>
+
+                    <dt class="col-sm-4">Department</dt>
+                    <dd class="col-sm-8">
+                        {{ user.department }}
+                    </dd>
+
+                    <dt class="col-sm-4">Role</dt>
+                    <dd class="col-sm-8">
+                        {{ user.role|title }}
+                    </dd>
+
+                    <dt class="col-sm-4">Interests</dt>
+                    <dd class="col-sm-8">
+                        {% for interest in user.interests %}
+                        <span
+                            class="badge rounded-pill
+                                   text-bg-light border"
+                        >
+                            {{ interest }}
+                        </span>
+                        {% endfor %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h2 class="h5 mb-0">
+                    Participation summary
+                </h2>
+            </div>
+
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <p class="h3 mb-0">
+                            {{ registrations|length }}
+                        </p>
+                        <small class="text-muted">
+                            Total
+                        </small>
+                    </div>
+
+                    <div class="col-4">
+                        <p class="h3 mb-0">
+                            {{ upcoming_count }}
+                        </p>
+                        <small class="text-muted">
+                            Upcoming
+                        </small>
+                    </div>
+
+                    <div class="col-4">
+                        <p class="h3 mb-0">
+                            {{ past_count }}
+                        </p>
+                        <small class="text-muted">
+                            Past
+                        </small>
+                    </div>
+                </div>
+
+                <hr>
+
+                <form
+                    method="post"
+                    action="/users/{{ user._id }}/delete"
+                    onsubmit="return confirm(
+                        'Delete this user permanently?'
+                    );"
+                >
+                    <button
+                        type="submit"
+                        class="btn btn-outline-danger w-100"
+                    >
+                        Delete user
+                    </button>
+                </form>
+
+                <small class="text-muted d-block mt-2">
+                    Deletion is blocked while the user is
+                    registered for or organizing an event.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div
+        class="card-header bg-white d-flex
+               justify-content-between align-items-center"
+    >
+        <h2 class="h5 mb-0">Registered events</h2>
+
+        <span class="badge text-bg-primary">
+            {{ registrations|length }}
+        </span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Event</th>
+                    <th>Category</th>
+                    <th>Date</th>
+                    <th>Registration status</th>
+                    <th>Event status</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for registration in registrations %}
+                <tr>
+                    <td class="fw-semibold">
+                        {{ registration.title }}
+                    </td>
+
+                    <td>{{ registration.category }}</td>
+
+                    <td>
+                        {{ registration.startDate.strftime(
+                            "%d %b %Y, %H:%M"
+                        ) }}
+                    </td>
+
+                    <td>
+                        <span class="badge text-bg-success">
+                            {{ registration.registrationStatus }}
+                        </span>
+                    </td>
+
+                    <td>
+                        {% if registration.isUpcoming %}
+                        <span class="badge text-bg-primary">
+                            Upcoming
+                        </span>
+                        {% else %}
+                        <span class="badge text-bg-secondary">
+                            Past
+                        </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <a
+                            href="/events/{{ registration._id }}"
+                            class="btn btn-sm btn-outline-primary"
+                        >
+                            View
+                        </a>
+                    </td>
+                </tr>
+
+                {% else %}
+                <tr>
+                    <td
+                        colspan="6"
+                        class="text-center text-muted py-4"
+                    >
+                        This user has no event registrations.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
