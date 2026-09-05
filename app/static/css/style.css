@@ -70,3 +70,13 @@ footer {
     letter-spacing: 0.04em;
     text-transform: uppercase;
 }
+
+.error-panel {
+    max-width: 650px;
+    margin: 4rem auto;
+    padding: 3rem 1.5rem;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.75rem;
+    box-shadow: 0 0.125rem 0.4rem rgba(0, 0, 0, 0.08);
+}

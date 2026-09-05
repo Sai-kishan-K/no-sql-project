@@ -415,12 +415,18 @@ def build_events(user_ids):
         end_date = start_date + timedelta(hours=2)
 
         registrations = []
+        used_user_indexes = set()
 
         for position in range(registration_count):
             user_index = (registration_start + position) % len(user_ids)
 
-            if user_index == organizer_index:
+            while (
+                user_index == organizer_index
+                or user_index in used_user_indexes
+            ):
                 user_index = (user_index + 1) % len(user_ids)
+
+            used_user_indexes.add(user_index)
 
             registrations.append(
                 build_registration(user_ids, user_index)

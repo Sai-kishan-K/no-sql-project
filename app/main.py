@@ -6,6 +6,9 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.exceptions import (
+    HTTPException as StarletteHTTPException,
+)
 
 from app.config import settings
 from app.database import check_database_connection, database
@@ -44,6 +47,62 @@ app.mount(
 app.include_router(events_router)
 app.include_router(users_router)
 app.include_router(analytics_router)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(
+    request: Request,
+    exc: StarletteHTTPException,
+):
+    if exc.status_code == 404:
+        heading = "Page not found"
+        message = (
+            "The requested page or database record "
+            "could not be found."
+        )
+    else:
+        heading = "Request error"
+        message = str(exc.detail)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "page_title": f"Error {exc.status_code}",
+            "active_page": "",
+            "status_code": exc.status_code,
+            "heading": heading,
+            "message": message,
+        },
+        status_code=exc.status_code,
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(
+    request: Request,
+    exc: Exception,
+):
+    print(
+        f"Unhandled application error: "
+        f"{type(exc).__name__}: {exc}"
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "page_title": "Server Error",
+            "active_page": "",
+            "status_code": 500,
+            "heading": "Unexpected server error",
+            "message": (
+                "The application encountered an unexpected "
+                "error. Please try again."
+            ),
+        },
+        status_code=500,
+    )
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -93,6 +152,8 @@ def dashboard(request: Request):
             "upcoming_events": upcoming_events,
         },
     )
+
+
 @app.get("/health")
 def health_check():
     try:
