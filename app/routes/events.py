@@ -828,167 +828,6 @@ def cancel_registration(
         "danger",
     )
 
-@router.get("/{event_id}", response_class=HTMLResponse)
-def event_details(
-    request: Request,
-    event_id: str,
-    message: str = "",
-    message_type: str = "success",
-):
-    event_object_id = valid_object_id(event_id)
-
-    pipeline = [
-        {
-            "$match": {
-                "_id": event_object_id,
-            }
-        },
-        {
-            "$lookup": {
-                "from": "users",
-                "localField": "organizerId",
-                "foreignField": "_id",
-                "as": "organizer",
-            }
-        },
-        {
-            "$unwind": {
-                "path": "$organizer",
-                "preserveNullAndEmptyArrays": True,
-            }
-        },
-        {
-            "$lookup": {
-                "from": "users",
-                "localField": "registrations.userId",
-                "foreignField": "_id",
-                "as": "registrationUsers",
-            }
-        },
-        {
-            "$project": {
-                "title": 1,
-                "description": 1,
-                "category": 1,
-                "tags": 1,
-                "startDate": 1,
-                "endDate": 1,
-                "capacity": 1,
-                "location": 1,
-                "organizer": 1,
-                "registrations": 1,
-                "registrationUsers": 1,
-                "createdAt": 1,
-                "updatedAt": 1,
-            }
-        },
-    ]
-
-    event_results = list(
-        database.events.aggregate(pipeline)
-    )
-
-    if not event_results:
-        raise HTTPException(
-            status_code=404,
-            detail="Event not found",
-        )
-
-    event = event_results[0]
-
-    registration_user_map = {
-        user["_id"]: user
-        for user in event.get("registrationUsers", [])
-    }
-
-    detailed_registrations = []
-
-    for registration in event.get("registrations", []):
-        registered_user = registration_user_map.get(
-            registration.get("userId")
-        )
-
-        detailed_registrations.append(
-            {
-                "userId": registration.get("userId"),
-                "registeredAt": registration.get(
-                    "registeredAt"
-                ),
-                "status": registration.get("status"),
-                "user": registered_user,
-            }
-        )
-
-    detailed_registrations.sort(
-        key=lambda item: (
-            item["user"].get("lastName", "")
-            if item["user"]
-            else ""
-        )
-    )
-
-    registered_user_ids = [
-        registration.get("userId")
-        for registration in event.get(
-            "registrations",
-            [],
-        )
-    ]
-
-    available_users = list(
-        database.users.find(
-            {
-                "_id": {
-                    "$nin": registered_user_ids,
-                }
-            },
-            {
-                "firstName": 1,
-                "lastName": 1,
-                "email": 1,
-                "department": 1,
-            },
-        ).sort(
-            [
-                ("lastName", ASCENDING),
-                ("firstName", ASCENDING),
-            ]
-        )
-    )
-
-    registration_count = len(
-        event.get("registrations", [])
-    )
-
-    event["registrationCount"] = registration_count
-    event["availablePlaces"] = max(
-        event["capacity"] - registration_count,
-        0,
-    )
-    event["isFull"] = (
-        registration_count >= event["capacity"]
-    )
-    event["isPast"] = (
-        event["startDate"]
-        < datetime.now(timezone.utc)
-    )
-    event["detailedRegistrations"] = (
-        detailed_registrations
-    )
-
-    return templates.TemplateResponse(
-        request=request,
-        name="event_detail.html",
-        context={
-            "page_title": event["title"],
-            "active_page": "events",
-            "event": event,
-            "available_users": available_users,
-            "message": message,
-            "message_type": message_type,
-        },
-    )
-
 @router.post("/{event_id}/registrations")
 def register_user(
     event_id: str,
@@ -1194,6 +1033,7 @@ def event_details(
 ):
     event_object_id = valid_object_id(event_id)
 
+    # Find the event and its organizer using aggregation.
     pipeline = [
         {
             "$match": {
@@ -1214,14 +1054,6 @@ def event_details(
                 "preserveNullAndEmptyArrays": True,
             }
         },
-        {
-            "$lookup": {
-                "from": "users",
-                "localField": "registrations.userId",
-                "foreignField": "_id",
-                "as": "registrationUsers",
-            }
-        },
     ]
 
     results = list(
@@ -1236,21 +1068,53 @@ def event_details(
 
     event = results[0]
 
-    registration_users = {
+    # Get the embedded registration documents.
+    embedded_registrations = event.get(
+        "registrations",
+        [],
+    )
+
+    # Extract the referenced user IDs.
+    registered_user_ids = [
+        registration["userId"]
+        for registration in embedded_registrations
+        if registration.get("userId") is not None
+    ]
+
+    # Retrieve participant details from the users collection.
+    registered_users = list(
+        database.users.find(
+            {
+                "_id": {
+                    "$in": registered_user_ids,
+                }
+            },
+            {
+                "firstName": 1,
+                "lastName": 1,
+                "email": 1,
+                "department": 1,
+            },
+        )
+    )
+
+    # Create a dictionary for matching registrations to users.
+    users_by_id = {
         user["_id"]: user
-        for user in event.get("registrationUsers", [])
+        for user in registered_users
     }
 
+    # Combine each embedded registration with its user.
     registration_details = []
 
-    for registration in event.get("registrations", []):
-        user = registration_users.get(
-            registration.get("userId")
+    for registration in embedded_registrations:
+        registration_user_id = registration.get(
+            "userId"
         )
 
         registration_details.append(
             {
-                "userId": registration.get("userId"),
+                "userId": registration_user_id,
                 "registeredAt": registration.get(
                     "registeredAt"
                 ),
@@ -1258,7 +1122,9 @@ def event_details(
                     "status",
                     "confirmed",
                 ),
-                "user": user,
+                "user": users_by_id.get(
+                    registration_user_id
+                ),
             }
         )
 
@@ -1270,16 +1136,12 @@ def event_details(
         )
     )
 
-    registered_user_ids = {
-        registration.get("userId")
-        for registration in event.get("registrations", [])
-    }
-
+    # Find users who are not registered for this event.
     available_users = list(
         database.users.find(
             {
                 "_id": {
-                    "$nin": list(registered_user_ids),
+                    "$nin": registered_user_ids,
                 }
             },
             {
@@ -1297,17 +1159,20 @@ def event_details(
     )
 
     registration_count = len(
-        event.get("registrations", [])
+        embedded_registrations
     )
 
     event["registrationCount"] = registration_count
+
     event["remainingPlaces"] = max(
         event["capacity"] - registration_count,
         0,
     )
+
     event["isFull"] = (
         registration_count >= event["capacity"]
     )
+
     event["isPast"] = (
         event["startDate"]
         < datetime.now(timezone.utc)
